@@ -11,7 +11,8 @@ import Html.Events exposing (onClick, onInput)
 
 
 type alias Todo =
-    { status : String
+    { id : Int
+    , status : Bool
     , title : String
     }
 
@@ -36,7 +37,7 @@ initialModel =
 type Msg
     = NewTitleChange String
     | NewTitleAdd
-    | StatusChange Todo
+    | StatusChange Int Bool
 
 
 update : Msg -> Model -> Model
@@ -46,30 +47,51 @@ update msg model =
             { model | newTodoTitle = value }
 
         NewTitleAdd ->
-            { model | todos = { title = model.newTodoTitle, status = "todo" } :: model.todos }
+            { model
+             | newTodoTitle = ""
+             , todos = { title = model.newTodoTitle, status = False, id = List.length model.todos + 1 } :: model.todos }
 
-        StatusChange todo ->
-            { model | todos = todo :: model.todos }
+        StatusChange id status ->
+            let
+                updateTodo todo =
+                    if todo.id == id then
+                        { todo | status = not status }
+                    else
+                        todo
+            in
+            { model | todos = List.map updateTodo model.todos }
 
 
 
 -- VIEW
+viewTodoLabel : Todo -> Html Msg
+viewTodoLabel todo =
+    if todo.status then
+        s [] [ text todo.title ]
+    else
+        span [] [ text todo.title ]
 
 
-viewTodo : Int -> Todo -> Html Msg
-viewTodo idx todo =
-    li [] [ label [] [ text todo.title ], input [ type_ "checkbox", onClick StatusChange ] [] ]
+
+viewTodo : Todo -> Html Msg
+viewTodo todo =
+    li [] [ label [] [ viewTodoLabel todo ]
+    , input [ type_ "checkbox", checked todo.status, onClick (StatusChange todo.id todo.status) ] []
+     ]
 
 
 viewTodos : Model -> Html Msg
 viewTodos model =
-    ul [] (List.indexedMap viewTodo model.todos)
+    case model.todos of
+        [] -> div [] [ text "No todos found, so go ahead and just add one!"]
+        _ -> ul [] (List.map viewTodo model.todos)
 
 
 view : Model -> Html Msg
 view model =
     section []
-        [ label [ for "new-todo-input" ] [ text "Enter todo title" ]
+        [ h1 [] [ text "My favorite todo list" ]
+        , label [ for "new-todo-input" ] [ text "Enter todo title" ]
         , input [ id "new-todo-input", type_ "text", onInput NewTitleChange ] []
         , button [ onClick NewTitleAdd ] [ text "Add todo" ]
         , viewTodos model
