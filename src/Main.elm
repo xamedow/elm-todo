@@ -18,14 +18,14 @@ type alias Todo =
 
 
 type alias Model =
-    { newTodoTitle : String
+    { newTodoTitle : Maybe String
     , todos : List Todo
     }
 
 
 initialModel : Model
 initialModel =
-    { newTodoTitle = ""
+    { newTodoTitle = Nothing
     , todos = []
     }
 
@@ -36,22 +36,35 @@ initialModel =
 
 type Msg
     = NewTitleChange String
-    | NewTitleAdd
-    | StatusChange Int Bool
+    | AddTodo
+    | ChangeTodoStatus Int Bool
+    | DeleteTodo Int
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         NewTitleChange value ->
-            { model | newTodoTitle = value }
+            if (String.length value) > 0 then
+                    { model | newTodoTitle = Just value }
+                else
+                    { model | newTodoTitle = Nothing }
 
-        NewTitleAdd ->
-            { model
-             | newTodoTitle = ""
-             , todos = { title = model.newTodoTitle, status = False, id = List.length model.todos + 1 } :: model.todos }
+        AddTodo ->
+            case model.newTodoTitle of
+                Nothing ->
+                    model
+                Just title ->
+                    { model | newTodoTitle = Nothing , todos = { title = title, status = False, id = List.length model.todos + 1 } :: model.todos }
 
-        StatusChange id status ->
+        DeleteTodo id ->
+            let
+                deleteTodo todo =
+                    not (todo.id == id)
+            in
+            { model | todos = List.filter deleteTodo model.todos }
+
+        ChangeTodoStatus id status ->
             let
                 updateTodo todo =
                     if todo.id == id then
@@ -76,7 +89,8 @@ viewTodoLabel todo =
 viewTodo : Todo -> Html Msg
 viewTodo todo =
     li [] [ label [] [ viewTodoLabel todo ]
-    , input [ type_ "checkbox", checked todo.status, onClick (StatusChange todo.id todo.status) ] []
+    , input [ type_ "checkbox", checked todo.status, onClick (ChangeTodoStatus todo.id todo.status) ] []
+    , button [ onClick (DeleteTodo todo.id) ] [ text "X" ]
      ]
 
 
@@ -87,13 +101,26 @@ viewTodos model =
         _ -> ul [] (List.map viewTodo model.todos)
 
 
+isNewTitleEmpty : Model -> Bool
+isNewTitleEmpty model =
+    case model.newTodoTitle of
+        Nothing ->
+            False
+        Just _ ->
+            True
+
+viewAddTodo : Model -> Html Msg
+viewAddTodo model =
+    section [] [ label [ for "new-todo-input" ] [ text "Enter todo title" ]
+        , input [ id "new-todo-input", type_ "text", onInput NewTitleChange ] []
+        , button [ disabled (isNewTitleEmpty model), onClick AddTodo ] [ text "Add todo" ]
+        ]
+
 view : Model -> Html Msg
 view model =
     section []
         [ h1 [] [ text "My favorite todo list" ]
-        , label [ for "new-todo-input" ] [ text "Enter todo title" ]
-        , input [ id "new-todo-input", type_ "text", onInput NewTitleChange ] []
-        , button [ onClick NewTitleAdd ] [ text "Add todo" ]
+        , viewAddTodo model
         , viewTodos model
         ]
 
