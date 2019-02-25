@@ -3,7 +3,8 @@ module Main exposing (Model, Msg(..), initialModel, main, update, view)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (keyCode, on, onBlur, onClick, onDoubleClick, onInput)
+import Json.Decode as Json
 
 
 
@@ -12,6 +13,7 @@ import Html.Events exposing (onClick, onInput)
 
 type alias Todo =
     { id : Int
+    , isEditable : Bool
     , status : Bool
     , title : String
     }
@@ -20,6 +22,7 @@ type alias Todo =
 type alias Model =
     { newTodoTitle : Maybe String
     , todos : List Todo
+    , changedTodoValue : String
     }
 
 
@@ -27,9 +30,12 @@ initialModel : Model
 initialModel =
     { newTodoTitle = Nothing
     , todos = []
+    , changedTodoValue = ""
     }
 
-
+onKeyDown : (Int -> msg) -> Attribute msg
+onKeyDown tagger =
+    on "keydown" (Json.map tagger keyCode)
 
 -- UPDATE
 
@@ -38,11 +44,15 @@ type Msg
     = NewTitleChange String
     | AddTodo
     | ChangeTodoStatus Int Bool
+    | ChangeEditStatus Int Bool
+    | ChangeTodoValue String
     | DeleteTodo Int
-
+    | SubmitTodoValue Int Int
 
 update : Msg -> Model -> Model
 update msg model =
+
+
     case msg of
         NewTitleChange value ->
             if (String.length value) > 0 then
@@ -55,7 +65,7 @@ update msg model =
                 Nothing ->
                     model
                 Just title ->
-                    { model | newTodoTitle = Nothing , todos = { title = title, status = False, id = List.length model.todos + 1 } :: model.todos }
+                    { model | newTodoTitle = Nothing , todos = { isEditable = False, status = False, title = title, id = List.length model.todos + 1 } :: model.todos }
 
         DeleteTodo id ->
             let
@@ -74,31 +84,72 @@ update msg model =
             in
             { model | todos = List.map updateTodo model.todos }
 
+        ChangeEditStatus id isEditable ->
+            let
+                updateTodo todo =
+                    if todo.id == id then
+                        { todo | isEditable = not isEditable }
+                    else
+                        todo
+            in
+            { model | todos = List.map updateTodo model.todos }
+
+        ChangeTodoValue value ->
+            { model | changedTodoValue = value }
+
+        SubmitTodoValue key id ->
+            if key == 13 then
+                let
+                    updateTodo todo title =
+                        if todo.id == id then
+                            { todo | title = title, isEditable = False }
+                        else
+                            todo
+                in
+                { model | todos = List.map (\ todo -> updateTodo todo model.changedTodoValue) model.todos }
+
+            else if key == 27 then
+                let
+                    updateTodo todo =
+                        if todo.id == id then
+                            { todo | isEditable = False }
+                        else
+                            todo
+                in
+                { model | todos = List.map updateTodo model.todos, changedTodoValue = "" }
+            else
+                model
+
 
 
 -- VIEW
-viewTodoLabel : Todo -> Html Msg
-viewTodoLabel todo =
+viewTodoLabel : Todo -> Model -> Html Msg
+viewTodoLabel todo model =
     if todo.status then
         s [] [ text todo.title ]
+    else if todo.isEditable then
+        input [ placeholder todo.title, onKeyDown (\ key -> SubmitTodoValue key todo.id) , onInput ChangeTodoValue, value model.changedTodoValue ] []
     else
         span [] [ text todo.title ]
 
 
 
-viewTodo : Todo -> Html Msg
-viewTodo todo =
-    li [] [ label [] [ viewTodoLabel todo ]
+
+viewTodo : Todo -> Model -> Html Msg
+viewTodo todo model =
+    li [] [ label [ onDoubleClick (ChangeEditStatus todo.id todo.isEditable) ] [ viewTodoLabel todo model ]
     , input [ type_ "checkbox", checked todo.status, onClick (ChangeTodoStatus todo.id todo.status) ] []
     , button [ onClick (DeleteTodo todo.id) ] [ text "X" ]
      ]
+
 
 
 viewTodos : Model -> Html Msg
 viewTodos model =
     case model.todos of
         [] -> div [] [ text "No todos found, so go ahead and just add one!"]
-        _ -> ul [] (List.map viewTodo model.todos)
+        _ -> ul [] (List.map (\ todo -> viewTodo todo model ) model.todos)
+
 
 
 isNewTitleEmpty : Model -> Bool
@@ -127,7 +178,7 @@ viewAddTodo model =
 view : Model -> Html Msg
 view model =
     section []
-        [ h1 [] [ text "My favorite todo list" ]
+        [ h1 [] [ text "What needs to be done" ]
         , viewAddTodo model
         , viewTodos model
         ]
