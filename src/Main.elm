@@ -105,14 +105,22 @@ isNewTitleEmpty : Model -> Bool
 isNewTitleEmpty model =
     case model.newTodoTitle of
         Nothing ->
-            False
-        Just _ ->
             True
+        Just _ ->
+            False
+
+getValue : Maybe String -> String
+getValue value =
+    case value of
+        Nothing ->
+            ""
+        Just a ->
+            a
 
 viewAddTodo : Model -> Html Msg
 viewAddTodo model =
     section [] [ label [ for "new-todo-input" ] [ text "Enter todo title" ]
-        , input [ id "new-todo-input", type_ "text", onInput NewTitleChange ] []
+        , input [ id "new-todo-input", type_ "text", value (getValue model.newTodoTitle), onInput NewTitleChange ] []
         , button [ disabled (isNewTitleEmpty model), onClick AddTodo ] [ text "Add todo" ]
         ]
 
