@@ -3,7 +3,7 @@ module Main exposing (Model, Msg(..), initialModel, main, update, view)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (keyCode, on, onBlur, onClick, onDoubleClick, onInput)
+import Html.Events exposing (keyCode, on, onClick, onDoubleClick, onInput)
 import Json.Decode as Json
 
 
