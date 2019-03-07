@@ -19,31 +19,24 @@ type alias Todo =
     }
 
 
-type alias DataModel =
-    { newTodoTitle : Maybe String
-    , todos : List Todo
-    , changedTodoValue : String
-    }
-
-
 type Model
     = Loading
-    | Failure
+    | Failure String
     | Success (List Todo)
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Loading, getTodos )
+    ( Loading, getTodoList )
 
 
 
 -- HTTP
 
 
-getTodos : Cmd Msg
-getTodos =
-    Http.get { url = "http://localhost:3005/todo", expect = Http.expectJson GotTodos todoListDecoder }
+getTodoList : Cmd Msg
+getTodoList =
+    Http.get { url = "http://localhost:3005/todo", expect = Http.expectJson GotTodoList todoListDecoder }
 
 
 
@@ -69,7 +62,7 @@ todoListDecoder =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -78,19 +71,17 @@ subscriptions model =
 
 
 type Msg
-    = GotTodos (Result Http.Error (List Todo))
+    = GotTodoList (Result Http.Error (List Todo))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg _ =
     case msg of
-        GotTodos result ->
-            case result of
-                Ok todoList ->
-                    ( Success todoList, Cmd.none )
+        GotTodoList (Ok todoList) ->
+            ( Success todoList, Cmd.none )
 
-                Err _ ->
-                    ( Failure, Cmd.none )
+        GotTodoList (Err error) ->
+            ( Failure (Debug.toString error), Cmd.none )
 
 
 
@@ -106,14 +97,14 @@ viewTodo todo =
         ]
 
 
-viewTodos : Model -> Html Msg
-viewTodos model =
+viewTodoList : Model -> Html Msg
+viewTodoList model =
     case model of
-        Failure ->
-            div [] [ text "No todos found, so go ahead and just add one!" ]
+        Failure message ->
+            div [] [ text ("There was an error during your request: " ++ message) ]
 
-        Success todos ->
-            ul [] (List.map viewTodo todos)
+        Success todoList ->
+            ul [] (List.map viewTodo todoList)
 
         Loading ->
             div [] [ text "Loading..." ]
@@ -123,7 +114,7 @@ view : Model -> Html Msg
 view model =
     section []
         [ h1 [] [ text "What needs to be done" ]
-        , viewTodos model
+        , viewTodoList model
         ]
 
 
