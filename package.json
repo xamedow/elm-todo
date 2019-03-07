@@ -5,7 +5,8 @@
   "main": "elm.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serveFake": "json-server fakeDB.js -p 3005"
+    "serveFake": "json-server fakeDB.js -p 3005",
+    "live": "elm-live src/Main.elm --open"
   },
   "repository": {
     "type": "git",

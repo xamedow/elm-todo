@@ -6,6 +6,7 @@ function createTodo () {
     return {
         id: faker.random.uuid(),
         title: `${faker.hacker.verb()} ${faker.hacker.adjective()} ${faker.hacker.noun()}`,
+        isEditable: false,
         status: false
     };
 }
