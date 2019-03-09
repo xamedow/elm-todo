@@ -4,7 +4,8 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
-import Json.Decode exposing (Decoder, bool, field, list, map4, string)
+import Json.Decode exposing (Decoder, bool, list, string, succeed)
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 
 
 
@@ -45,11 +46,11 @@ getTodoList =
 
 todoDecoder : Decoder Todo
 todoDecoder =
-    map4 Todo
-        (field "id" string)
-        (field "title" string)
-        (field "isEditable" bool)
-        (field "status" bool)
+    succeed Todo
+        |> required "id" string
+        |> required "title" string
+        |> optional "status" bool False
+        |> hardcoded False
 
 
 todoListDecoder : Decoder (List Todo)
