@@ -4979,6 +4979,7 @@ var author$project$Model$Loading = {$: 'Loading'};
 var author$project$Model$GotTodoList = function (a) {
 	return {$: 'GotTodoList', a: a};
 };
+var author$project$Model$endpoint = 'http://localhost:3005/todo/';
 var elm$json$Json$Decode$map2 = _Json_map2;
 var NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = elm$json$Json$Decode$map2(elm$core$Basics$apR);
 var elm$core$Basics$composeR = F3(
@@ -5949,7 +5950,7 @@ var elm$http$Http$get = function (r) {
 var author$project$Model$getTodoList = elm$http$Http$get(
 	{
 		expect: A2(elm$http$Http$expectJson, author$project$Model$GotTodoList, author$project$Model$todoListDecoder),
-		url: 'http://localhost:3005/todo'
+		url: author$project$Model$endpoint
 	});
 var author$project$Model$init = function (_n0) {
 	return _Utils_Tuple2(author$project$Model$Loading, author$project$Model$getTodoList);
@@ -5989,7 +5990,63 @@ var author$project$Model$deleteTodo = function (id) {
 			method: 'DELETE',
 			timeout: elm$core$Maybe$Nothing,
 			tracker: elm$core$Maybe$Nothing,
-			url: 'http://localhost:3005/todo/' + id
+			url: _Utils_ap(author$project$Model$endpoint, id)
+		});
+};
+var author$project$Model$UpdatedTodoStatus = function (a) {
+	return {$: 'UpdatedTodoStatus', a: a};
+};
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n0, obj) {
+					var k = _n0.a;
+					var v = _n0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Model$todoEncode = function (todo) {
+	return elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				elm$json$Json$Encode$string(todo.id)),
+				_Utils_Tuple2(
+				'title',
+				elm$json$Json$Encode$string(todo.title)),
+				_Utils_Tuple2(
+				'status',
+				elm$json$Json$Encode$bool(todo.status))
+			]));
+};
+var elm$core$Basics$not = _Basics_not;
+var elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2(elm$json$Json$Encode$encode, 0, value));
+};
+var author$project$Model$updateTodoStatus = function (todo) {
+	var nextTodo = _Utils_update(
+		todo,
+		{status: !todo.status});
+	return elm$http$Http$request(
+		{
+			body: elm$http$Http$jsonBody(
+				author$project$Model$todoEncode(nextTodo)),
+			expect: elm$http$Http$expectWhatever(author$project$Model$UpdatedTodoStatus),
+			headers: _List_Nil,
+			method: 'PUT',
+			timeout: elm$core$Maybe$Nothing,
+			tracker: elm$core$Maybe$Nothing,
+			url: _Utils_ap(author$project$Model$endpoint, todo.id)
 		});
 };
 var elm$core$Debug$toString = _Debug_toString;
@@ -6016,6 +6073,21 @@ var author$project$Model$update = F2(
 				return _Utils_Tuple2(
 					author$project$Model$Loading,
 					author$project$Model$deleteTodo(id));
+			case 'DeletedTodo':
+				if (msg.a.$ === 'Ok') {
+					return _Utils_Tuple2(author$project$Model$Loading, author$project$Model$getTodoList);
+				} else {
+					var error = msg.a.a;
+					return _Utils_Tuple2(
+						author$project$Model$Failure(
+							elm$core$Debug$toString(error)),
+						elm$core$Platform$Cmd$none);
+				}
+			case 'UpdateTodoStatus':
+				var todo = msg.a;
+				return _Utils_Tuple2(
+					author$project$Model$Loading,
+					author$project$Model$updateTodoStatus(todo));
 			default:
 				if (msg.a.$ === 'Ok') {
 					return _Utils_Tuple2(author$project$Model$Loading, author$project$Model$getTodoList);
@@ -6030,6 +6102,9 @@ var author$project$Model$update = F2(
 	});
 var author$project$Model$DeleteTodo = function (a) {
 	return {$: 'DeleteTodo', a: a};
+};
+var author$project$Model$UpdateTodoStatus = function (a) {
+	return {$: 'UpdateTodoStatus', a: a};
 };
 var elm$json$Json$Decode$map = _Json_map1;
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
@@ -6050,7 +6125,6 @@ var elm$html$Html$label = _VirtualDom_node('label');
 var elm$html$Html$li = _VirtualDom_node('li');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var elm$json$Json$Encode$bool = _Json_wrap;
 var elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
 		return A2(
@@ -6059,7 +6133,6 @@ var elm$html$Html$Attributes$boolProperty = F2(
 			elm$json$Json$Encode$bool(bool));
 	});
 var elm$html$Html$Attributes$checked = elm$html$Html$Attributes$boolProperty('checked');
-var elm$json$Json$Encode$string = _Json_wrap;
 var elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6103,7 +6176,9 @@ var author$project$View$viewTodo = function (todo) {
 				_List_fromArray(
 					[
 						elm$html$Html$Attributes$type_('checkbox'),
-						elm$html$Html$Attributes$checked(todo.status)
+						elm$html$Html$Attributes$checked(todo.status),
+						elm$html$Html$Events$onClick(
+						author$project$Model$UpdateTodoStatus(todo))
 					]),
 				_List_Nil),
 				A2(

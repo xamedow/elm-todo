@@ -10,7 +10,7 @@ viewTodo : Todo -> Html Msg
 viewTodo todo =
     li []
         [ label [] [ text todo.title ]
-        , input [ type_ "checkbox", checked todo.status ] []
+        , input [ type_ "checkbox", checked todo.status, onClick (UpdateTodoStatus todo) ] []
         , button [ onClick (DeleteTodo todo.id) ] [ text "X" ]
         ]
 
